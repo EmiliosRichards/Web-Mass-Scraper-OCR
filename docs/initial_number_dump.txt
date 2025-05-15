@@ -1,0 +1,4 @@
+INSERT INTO raw_phone_numbers (client_id, phone_number, source_page, confidence_score)
+SELECT client_id, company_phone, 'initial_company_table', '0.8'
+FROM companies
+WHERE company_phone IS NOT NULL AND company_phone <> '';

@@ -1,0 +1,19 @@
+# Core dependencies
+playwright>=1.40.0
+requests>=2.31.0
+httpx>=0.24.0  # For async HTTP requests
+Pillow>=10.0.0  # For image processing
+pytesseract>=0.3.10  # For OCR
+psutil>=5.9.0  # For system monitoring
+tqdm>=4.66.0  # For progress bars
+psycopg2-binary>=2.9.9 # For PostgreSQL connection
+python-dotenv>=0.21.0 # For loading .env files
+sqlalchemy>=2.0.0  # For database ORM
+
+# Type hints and development
+typing-extensions>=4.7.0
+
+# Note: Tesseract OCR engine must be installed separately on the system
+# Windows: https://github.com/UB-Mannheim/tesseract/wiki
+# Linux: sudo apt-get install tesseract-ocr
+# macOS: brew install tesseract 

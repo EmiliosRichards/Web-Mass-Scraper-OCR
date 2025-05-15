@@ -1,0 +1,28 @@
+# Python specific
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+venv/
+.venv/
+env/
+.env
+
+# Operating System specific
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE/Editor specific
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Project specific
+data/
+logs/
+*.log
