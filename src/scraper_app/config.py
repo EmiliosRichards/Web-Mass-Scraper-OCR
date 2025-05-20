@@ -8,11 +8,33 @@ from dotenv import load_dotenv
 
 # Load environment variables from .env file
 # This should be one of the first things to run
-load_dotenv()
+load_dotenv(override=True) # Ensure .env values override system env if conflicts occur
 
 # Get the root directory of the project, allowing override via SCRAPER_ROOT env var
 ROOT_DIR = Path(os.getenv('SCRAPER_ROOT', Path.cwd()))
 
+# --- Scraper Core Settings ---
+SCRAPER_TARGET_URL: str = os.getenv('SCRAPER_TARGET_URL', "")
+SCRAPER_URL_FILE_PATH: str = os.getenv('SCRAPER_URL_FILE_PATH', "")
+SCRAPER_DEBUG_MODE: bool = os.getenv('SCRAPER_DEBUG_MODE', 'False').lower() == 'true'
+SCRAPER_OUTPUT_DIRECTORY_STR: str = os.getenv('SCRAPER_OUTPUT_DIRECTORY', 'data') # Will be used to define DATA_DIR
+SCRAPER_MODE: str = os.getenv('SCRAPER_MODE', 'both') # 'text', 'ocr', or 'both'
+SCRAPER_RUN_NAME: str = os.getenv('SCRAPER_RUN_NAME', "")
+
+# --- Logging Levels ---
+SCRAPER_CONSOLE_LOG_LEVEL: str = os.getenv('SCRAPER_CONSOLE_LOG_LEVEL', 'INFO').upper()
+SCRAPER_FILE_LOG_LEVEL: str = os.getenv('SCRAPER_FILE_LOG_LEVEL', 'INFO').upper()
+
+# --- Database Interaction Control ---
+SCRAPER_USE_DATABASE: bool = os.getenv('SCRAPER_USE_DATABASE', 'False').lower() == 'true'
+
+# --- Database Source Settings (only used if SCRAPER_USE_DATABASE is True) ---
+SCRAPER_SOURCE_FROM_DB: bool = os.getenv('SCRAPER_SOURCE_FROM_DB', 'False').lower() == 'true'
+SCRAPER_DB_NUM_URLS: int = int(os.getenv('SCRAPER_DB_NUM_URLS', '10'))
+SCRAPER_DB_RANGE: str = os.getenv('SCRAPER_DB_RANGE', "") # e.g., "0-100"
+SCRAPER_DB_PENDING_BATCH_SIZE: int = int(os.getenv('SCRAPER_DB_PENDING_BATCH_SIZE', '10'))
+
+# --- Original settings will follow this block ---
 # Timeout in seconds for image download requests
 IMAGE_DOWNLOAD_TIMEOUT: int = int(os.getenv('SCRAPER_IMAGE_TIMEOUT', '10'))
 
@@ -36,11 +58,18 @@ SCRAPE_RETRY_JITTER: bool = os.getenv('SCRAPER_RETRY_JITTER', 'True').lower() ==
 # Default file extension for images when no extension is found in URL
 DEFAULT_IMAGE_EXTENSION = ".jpg"
 
-# Root directory where all scraper output will be stored
-DATA_DIR = ROOT_DIR / "data"
+# Root directory where all scraper output will be stored.
+# Defined using SCRAPER_OUTPUT_DIRECTORY_STR from .env (inserted earlier)
+_temp_output_path = Path(SCRAPER_OUTPUT_DIRECTORY_STR)
+if _temp_output_path.is_absolute():
+    DATA_DIR = _temp_output_path
+else:
+    DATA_DIR = ROOT_DIR / _temp_output_path
+DATA_DIR.mkdir(parents=True, exist_ok=True) # Ensure it exists
 
 # Scraping directory where run-specific folders will be created
 SCRAPING_DIR = DATA_DIR / "raw"
+SCRAPING_DIR.mkdir(parents=True, exist_ok=True) # Ensure it exists
 
 # Current run directory (will be set when scraping starts)
 CURRENT_RUN_DIR = None
@@ -84,7 +113,7 @@ def initialize_run_directory(run_name: Optional[str] = None) -> Path:
         return CURRENT_RUN_DIR
     
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    if run_name:
+    if run_name: # Use SCRAPER_RUN_NAME from config
         # Clean the run name to be filesystem safe
         safe_name = "".join(c for c in run_name if c.isalnum() or c in (' ', '-', '_')).strip()
         safe_name = safe_name.replace(' ', '_')
@@ -110,23 +139,12 @@ def get_run_directory() -> Path:
         Path: The path to the current run directory
     """
     if CURRENT_RUN_DIR is None:
-        return initialize_run_directory()
+        # Pass SCRAPER_RUN_NAME to initialize_run_directory
+        return initialize_run_directory(SCRAPER_RUN_NAME if SCRAPER_RUN_NAME else None)
     return CURRENT_RUN_DIR
 
-def set_output_directory(output_dir: Path) -> None:
-    """Set a custom output directory for scraper results.
-    
-    Args:
-        output_dir (Path): The new output directory path
-    """
-    global DATA_DIR, SCRAPING_DIR, CURRENT_RUN_DIR
-    
-    # Update all directory paths
-    DATA_DIR = output_dir
-    SCRAPING_DIR = output_dir / "raw"
-    CURRENT_RUN_DIR = None  # Reset current run directory
-    
-    logging.info(f"Output directory set to: {output_dir}")
+# The set_output_directory function is removed as DATA_DIR is now configured 
+# from .env by SCRAPER_OUTPUT_DIRECTORY_STR at startup.
 
 def ensure_directories(hostname: str | None = None) -> Dict[str, Path]:
     """Ensure all required directories exist for the scraper's operation.

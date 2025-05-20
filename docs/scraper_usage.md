@@ -1,201 +1,178 @@
-# Scraper Usage Guide
+# Scraper Usage Guide (.env Configuration)
 
-This document provides detailed information about the command-line arguments and usage examples for the web scraper.
+This document provides detailed information about configuring and running the web scraper using the `.env` file. All command-line arguments have been deprecated in favor of environment variable-based configuration.
 
-## Command-Line Arguments
+## Running the Scraper
 
-### Basic Arguments
+Once the `.env` file is configured in the project root, run the scraper using the following command:
 
-| Argument | Description | Required | Default |
-|----------|-------------|----------|---------|
-| `url_pos` | URL to scrape (positional argument) | Yes* | - |
-| `--url` | URL to scrape (alternative to positional argument) | Yes* | - |
-| `--url-file` | Path to file containing URLs to scrape (one per line) | Yes* | - |
-
-*Note: One of `url_pos`, `--url`, or `--url-file` must be provided.
-
-### Optional Arguments
-
-| Argument | Description | Default | Choices |
-|----------|-------------|---------|---------|
-| `--scrape-mode` | What to scrape | 'both' | 'text', 'ocr', 'both' |
-| `--output-dir` | Custom directory for output files | './data/scraping/' | - |
-| `--log-level` | Set logging level | 'DEBUG' | 'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL' |
-| `--run-name` | Name for this scraping run | - | - |
-| `--debug` | Enable debug mode | False | True, False |
-| `--from-db` | Fetch URLs from the database | False | - |
-| `--num-urls` | Number of URLs to fetch from the database (used as limit if `--db-range` not set) | 10 | - |
-| `--db-range` | Specify a range of records to fetch (e.g., "1-100"). 1-indexed, inclusive. Overrides --num-urls if used with --from-db. | None | - |
-
-
-## Usage Examples
-
-### Basic Usage
-
-1. Scrape a single URL:
 ```bash
-python -m src.scraper_app.main --url "https://example.com"
+python -m src.scraper_app.main
 ```
 
-2. Scrape multiple URLs from a file:
-```bash
-python -m src.scraper_app.main --url-file urls.txt
+The behavior of the scraper will be entirely determined by the settings in your `.env` file.
+
+## Configuration via `.env` File
+
+Create a `.env` file in the root directory of the project. You can copy `.env.example` (if one exists) or create a new file. Below is a comprehensive list of supported environment variables, their purpose, typical values, and defaults.
+
+### Core Scraping Settings
+
+| Variable                     | Description                                                                 | Example Value                      | Default   |
+| :--------------------------- | :-------------------------------------------------------------------------- | :--------------------------------- | :-------- |
+| `SCRAPER_TARGET_URL`         | A single URL to scrape. If set, `SCRAPER_URL_FILE_PATH` is ignored.         | `"https://example.com"`            | `""`      |
+| `SCRAPER_URL_FILE_PATH`      | Path to a text file containing URLs to scrape (one URL per line).           | `"input/urls_to_scrape.txt"`       | `""`      |
+| `SCRAPER_DEBUG_MODE`         | Enable verbose debug logging to console and file.                           | `True` / `False`                   | `False`   |
+| `SCRAPER_OUTPUT_DIRECTORY`   | Root directory for all output data. Can be relative or absolute.            | `"output_data"`                    | `"data"`  |
+| `SCRAPER_MODE`               | Specifies what content to extract.                                          | `"both"` / `"text"` / `"ocr"`      | `"both"`  |
+| `SCRAPER_RUN_NAME`           | Optional custom name for the run-specific output folder. Timestamp is always appended. | `"my_special_run"`               | `""`      |
+| `SCRAPER_ROOT`               | Optional: Absolute path to the project root if running from a different CWD. | `"/abs/path/to/project"`         | CWD       |
+
+### Logging Levels
+
+| Variable                        | Description                                      | Example Value        | Default   |
+| :------------------------------ | :----------------------------------------------- | :------------------- | :-------- |
+| `SCRAPER_CONSOLE_LOG_LEVEL`     | Log level for console output.                    | `"DEBUG"` / `"INFO"` | `"INFO"`  |
+| `SCRAPER_FILE_LOG_LEVEL`        | Log level for the main `logs/scraper.log` file.  | `"DEBUG"` / `"INFO"` | `"INFO"`  |
+*Valid log levels: `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`.*
+
+### Database Interaction
+
+| Variable                         | Description                                                                                                | Example Value    | Default   |
+| :------------------------------- | :--------------------------------------------------------------------------------------------------------- | :--------------- | :-------- |
+| `SCRAPER_USE_DATABASE`           | Master switch to enable or disable all database interactions (reading and writing).                        | `True` / `False` | `False`   |
+| `SCRAPER_SOURCE_FROM_DB`         | If `SCRAPER_USE_DATABASE` is `True`, set this to `True` to source URLs from the database.                   | `True` / `False` | `False`   |
+| `SCRAPER_DB_NUM_URLS`            | Number of URLs to fetch from DB if `SCRAPER_SOURCE_FROM_DB` is `True` and `SCRAPER_DB_RANGE` is not set.    | `50`             | `10`      |
+| `SCRAPER_DB_RANGE`               | Specify a range of records to fetch from DB (e.g., "1-100"). 1-indexed, inclusive. Overrides `SCRAPER_DB_NUM_URLS`. | `"1-500"`        | `""`      |
+| `SCRAPER_DB_PENDING_BATCH_SIZE`  | Batch size for processing pending URLs from the database (if applicable to a separate processing script).    | `20`             | `10`      |
+
+### Timeouts and Retries
+
+| Variable                        | Description                                                     | Example Value | Default   |
+| :------------------------------ | :-------------------------------------------------------------- | :------------ | :-------- |
+| `SCRAPER_IMAGE_TIMEOUT`         | Timeout for individual image downloads in seconds.              | `15`          | `10`      |
+| `SCRAPER_IMAGE_RETRY_COUNT`     | Number of retry attempts for failed image downloads.            | `2`           | `3`       |
+| `SCRAPER_IMAGE_RETRY_DELAY`     | Delay in seconds between image download retries.                | `2`           | `1`       |
+| `SCRAPER_MAX_RETRIES`           | Max retry attempts for scraping a page if it fails.             | `2`           | `1`       |
+| `SCRAPER_INITIAL_DELAY`         | Initial delay (seconds) for page scraping retries.              | `1.5`         | `1.0`     |
+| `SCRAPER_BACKOFF_FACTOR`        | Multiplier for page scraping retry delay (e.g., 2 for exponential). | `1.5`         | `2.0`     |
+| `SCRAPER_MAX_DELAY`             | Maximum delay (seconds) for page scraping retries.              | `30.0`        | `60.0`    |
+| `SCRAPER_RETRY_JITTER`          | Apply jitter to retry delays for page scraping.                 | `True` / `False`| `True`    |
+
+### Rate Limiting
+
+| Variable                            | Description                                       | Example Value | Default   |
+| :---------------------------------- | :------------------------------------------------ | :------------ | :-------- |
+| `SCRAPER_MAX_REQUESTS_PER_SECOND`   | Max requests per second per hostname for scraping.  | `1.0`         | `2.0`     |
+| `SCRAPER_RATE_LIMIT_BURST`          | Maximum burst of requests allowed per hostname.     | `3`           | `5`       |
+
+### Database Connection Details
+*(Only used if `SCRAPER_USE_DATABASE=True`)*
+
+| Variable      | Description                  | Example Value        | Default        |
+| :------------ | :--------------------------- | :------------------- | :------------- |
+| `DB_HOST`     | PostgreSQL database host.    | `"localhost"`        | `"localhost"`  |
+| `DB_PORT`     | PostgreSQL database port.    | `5433`               | `5432`         |
+| `DB_NAME`     | PostgreSQL database name.    | `"my_scraper_data"`  | `"scraper_db"` |
+| `DB_USER`     | PostgreSQL database user.    | `"admin"`            | `"scraper_user"`|
+| `DB_PASSWORD` | PostgreSQL database password.| `"securepassword123"`| `"scraper_password"`|
+
+## Example `.env` Configurations
+
+**1. Scrape a single URL, OCR images, no database, debug logging:**
+```dotenv
+SCRAPER_TARGET_URL="https://en.wikipedia.org/wiki/Web_scraping"
+SCRAPER_URL_FILE_PATH=""
+SCRAPER_DEBUG_MODE=True
+SCRAPER_OUTPUT_DIRECTORY="output/single_run"
+SCRAPER_MODE="both"
+SCRAPER_RUN_NAME="wiki_scrape_test"
+SCRAPER_CONSOLE_LOG_LEVEL="DEBUG"
+SCRAPER_FILE_LOG_LEVEL="DEBUG"
+SCRAPER_USE_DATABASE=False
 ```
 
-## Debug Mode
-
-The scraper supports two modes of operation:
-
-1. **Normal Mode** (default):
-   - Minimal console output
-   - Only shows warnings and errors
-   - All logs are still saved to the log file
-   ```bash
-   python -m src.scraper_app.main --url "https://example.com"
-   ```
-
-2. **Debug Mode**:
-   - Verbose console output
-   - Shows all debug information
-   - All logs are saved to the log file
-   ```bash
-   python -m src.scraper_app.main --url "https://example.com" --debug
-   ```
-
-## Advanced Options
-
-1. Custom output directory:
-```bash
-python -m src.scraper_app.main --url "https://example.com" --output-dir "./custom_data"
+**2. Scrape URLs from a file, text mode only, use database for results:**
+```dotenv
+SCRAPER_TARGET_URL=""
+SCRAPER_URL_FILE_PATH="input/my_urls.txt"
+SCRAPER_DEBUG_MODE=False
+SCRAPER_OUTPUT_DIRECTORY="data_collection"
+SCRAPER_MODE="text"
+SCRAPER_CONSOLE_LOG_LEVEL="INFO"
+SCRAPER_FILE_LOG_LEVEL="INFO"
+SCRAPER_USE_DATABASE=True
+SCRAPER_SOURCE_FROM_DB=False # Not sourcing from DB, only writing
+DB_HOST="mypostgres.server.com"
+DB_PORT=5432
+DB_NAME="production_scrapes"
+DB_USER="prod_user"
+DB_PASSWORD="verysecret"
 ```
 
-2. Scraping mode selection:
-```bash
-python -m src.scraper_app.main --url "https://example.com" --scrape-mode text    # Text only
-python -m src.scraper_app.main --url "https://example.com" --scrape-mode ocr     # OCR only
-python -m src.scraper_app.main --url "https://example.com" --scrape-mode both    # Both (default)
+**3. Scrape URLs sourced from database (first 100), OCR mode, default output:**
+```dotenv
+SCRAPER_TARGET_URL=""
+SCRAPER_URL_FILE_PATH=""
+SCRAPER_DEBUG_MODE=False
+SCRAPER_MODE="ocr"
+SCRAPER_USE_DATABASE=True
+SCRAPER_SOURCE_FROM_DB=True
+SCRAPER_DB_NUM_URLS=100 # Will fetch first 100 if SCRAPER_DB_RANGE is empty
+# SCRAPER_DB_RANGE="1-100" # Alternative to SCRAPER_DB_NUM_URLS
+# ... other DB connection details ...
 ```
 
-3. Name your scraping run:
-```bash
-python -m src.scraper_app.main --url "https://example.com" --run-name "my_scrape_run"
-```
-
-### Combined Examples
-
-1. Full featured example with all options:
-```bash
-python -m src.scraper_app.main --url "https://example.com" --scrape-mode both --output-dir "./data/scraping/" --debug --run-name "test_run"
-```
-
-2. Process multiple URLs with custom settings:
-```bash
-python -m src.scraper_app.main --url-file urls.txt --scrape-mode both --output-dir "./data/scraping/" --debug --run-name "batch_run"
-```
-
-### Database Operations
-
-To scrape URLs sourced from the project's database:
-
-*   If `--from-db` is used without `--db-range`, it fetches the first `N` records based on `--num-urls`:
-    ```bash
-    python -m src.scraper_app.main --from-db --num-urls 50
-    ```
-    This fetches the first 50 records.
-
-*   **Scrape a specific range of URLs from the database using `--db-range`:**
-    The `--db-range <START-END>` argument allows you to fetch a deterministic slice of URLs from the database when `--from-db` is active.
-    *   **Format:** `START-END` (e.g., "1-100").
-    *   **Indexing:** 1-indexed, inclusive. So, "1-100" fetches records 1 through 100.
-    *   **Ordering:** For consistent slicing, the database query orders records by `created_at ASC, client_id ASC`.
-    *   **Interaction with `--num-urls`:** If `--db-range` is provided, it **overrides** the `--num-urls` argument for determining the count and selection of URLs from the database.
-    *   **Interaction with `--from-db`:** `--db-range` is only active if `--from-db` is also used. If `--from-db` is not present, `--db-range` is ignored.
-    *   **Help Text:** 'Specify a range of records to fetch (e.g., "1-100"). 1-indexed, inclusive. Overrides --num-urls if used with --from-db.'
-
-    **Examples for `--db-range`:**
-
-    *   Fetch the first 100 records (1-100):
-        ```bash
-        python -m src.scraper_app.main --from-db --db-range 1-100
-        ```
-
-    *   Fetch records 101 through 200:
-        ```bash
-        python -m src.scraper_app.main --from-db --db-range 101-200 --scrape-mode text
-        ```
-
-    *   Using `--db-range` with `--num-urls` (note: `--num-urls` will be ignored for DB record count):
-        ```bash
-        python -m src.scraper_app.main --from-db --db-range 1-20 --num-urls 500
-        ```
-        In this case, only records 1-20 will be fetched, as specified by `--db-range`. `--num-urls 500` is ignored for database fetching.
-
-    *   Using `--db-range` without `--from-db` (note: `--db-range` will be ignored):
-        ```bash
-        python -m src.scraper_app.main --url "https://example.com" --db-range 1-10
-        ```
-        Here, `--db-range` has no effect because `--from-db` is not specified. The scraper will process "https://example.com".
-
-
-*   Scrape URLs from the database (using `--num-urls`) with debug mode enabled:
-    ```bash
-    python -m src.scraper_app.main --from-db --num-urls 10 --debug
-    ```
 ## Output Structure
 
-The scraper organizes its output in the following structure:
+The scraper organizes its output in the following structure (assuming `SCRAPER_OUTPUT_DIRECTORY="data"`):
 
 ```
 data/
-└── scraping/                 # Scraping results
-    └── <timestamp_or_run_name>/ # Run-specific directories (timestamp by default, or custom if --run-name is used)
-        ├── pages/            # Scraped page content
-        │   └── <company>/    # Company-specific content (derived from URL or other metadata)
-        │       ├── page.html # Raw HTML
-        │       ├── text.txt  # Extracted text
-        │       ├── text.json # Structured data (if applicable)
-        │       └── ocr/      # OCR results for images within this page/company context
-        ├── images/           # Downloaded images (if saved, structure might vary)
-        ├── session.log       # Log for this specific scraping session/run
-        └── summary.json      # Summary of this scraping session/run
+└── raw/                      # Raw scraping results
+    └── <run_name_timestamp>/ # Run-specific directory (e.g., my_run_20250520_104500)
+        ├── pages/            # Scraped page content per hostname
+        │   └── <hostname>/   # e.g., example_com
+        │       ├── page.html
+        │       ├── text.json # Contains extracted text and metadata
+        │       ├── text.txt  # Plain extracted text
+        │       └── ocr/      # OCR results
+        │           ├── ocr_001_image_filename.json # Detailed OCR for one image
+        │           ├── ...
+        │           └── summary.json # Summary of OCR for all images on this page
+        ├── images/           # Downloaded images per hostname
+        │   └── <hostname>/
+        │       └── image_filename.jpg
+        │       └── ...
+        ├── session_details.log # Detailed log for this specific scraping session/run
+        └── run_summary.json    # JSON summary of this scraping session/run (aggregates all URLs)
 logs/ (at project root)
-├── scraper.log               # General scraper operational logs
-└── scrape_history.log        # Historical log of all scraping runs
+└── scraper.log               # Main application log file, appended across runs
 ```
-
-## Environment Variables
-
-The scraper can be configured using environment variables:
-
-- `SCRAPER_ROOT`: Root directory for the project (default: current working directory)
-- `SCRAPER_IMAGE_TIMEOUT`: Timeout for image downloads in seconds (default: 10)
-- `SCRAPER_IMAGE_RETRY_COUNT`: Number of retry attempts for failed image downloads (default: 3)
-- `SCRAPER_IMAGE_RETRY_DELAY`: Delay between image download retries in seconds (default: 1)
-- `SCRAPER_MAX_REQUESTS_PER_SECOND`: Rate limit for requests (default: 2.0)
-- `SCRAPER_RATE_LIMIT_BURST`: Maximum burst of requests allowed (default: 5)
 
 ## Logging
 
-The scraper maintains two types of logs:
+The scraper maintains two primary log outputs:
 
-1. **Main Log File** (`logs/scraper.log`):
-   - Contains all logging information
-   - Includes debug, info, warning, and error messages
-   - Useful for troubleshooting and analysis
+1.  **Main Application Log** (`logs/scraper.log` at the project root):
+    *   Contains comprehensive logging information from all runs.
+    *   The level of detail written to this file is controlled by `SCRAPER_FILE_LOG_LEVEL`.
+    *   Useful for troubleshooting and detailed analysis.
 
-2. **History Log** (`logs/scrape_history.log`):
-   - Contains a summary of each scraping run
-   - Includes success rates, timing, and error counts
-   - Useful for tracking performance over time
+2.  **Session-Specific Log** (`data/raw/<run_name_timestamp>/session_details.log`):
+    *   Contains logs specific to a single execution run of the scraper.
+    *   Includes a JSON summary of the session and detailed logs of processed URLs, warnings, and errors for that run.
+
+Console output verbosity is controlled by `SCRAPER_CONSOLE_LOG_LEVEL`. Setting `SCRAPER_DEBUG_MODE=True` typically sets both console and file levels to `DEBUG` unless overridden by the specific level settings.
 
 ## Error Handling
 
-The scraper handles various types of errors:
-
+The scraper is designed to handle various errors gracefully:
 - Invalid URLs
-- Connection issues
-- Parsing errors
-- OCR processing errors
+- Network connection issues (with retries)
+- Page loading timeouts
+- Image download failures (with retries)
+- OCR processing errors (including unsupported image formats)
 - File system errors
 
-All errors are logged to both the console (in debug mode) and the log file, with detailed information about the error type and context.
+All significant events, warnings, and errors are logged to both the console (respecting `SCRAPER_CONSOLE_LOG_LEVEL`) and the main log file (`logs/scraper.log`). Run-specific errors are also captured in the `session_details.log` and `run_summary.json`.

@@ -12,6 +12,10 @@ def get_db_connection() -> Optional[psycopg2.extensions.connection]:
     Returns:
         psycopg2.extensions.connection: A database connection object or None if connection fails.
     """
+    if not config.SCRAPER_USE_DATABASE:
+        logging.info("Database use is disabled via SCRAPER_USE_DATABASE. Skipping connection.")
+        return None
+    
     try:
         conn = psycopg2.connect(
             host=config.DB_HOST,
